@@ -22,6 +22,63 @@ import operator
 # This is worth its weight in gold! Conversion from classic gtk to gobject stuff
 # http://git.gnome.org/browse/pygobject/tree/pygi-convert.sh
 
+class LayoutAnchor:
+  NORTH_WEST, SOUTH_WEST, SOUTH_EAST, NORTH_EAST = range(4)
+
+
+class LayoutDirection:
+  VERTICAL, HORIZONTAL = range(2)
+
+
+class Layout:
+  @staticmethod
+  def layout_north_west(margins, windows, direction):
+    base = (Gdk.Screen.width() - margins[1], margins[0])
+
+    for win in windows.itervalues():
+      win.move(base[0] - win.get_size()[0], base[1])
+      if direction == LayoutDirection.VERTICAL:
+        base = (base[0]                    , base[1] + win.get_size()[1])
+      else:
+        base = (base[0] - win.get_size()[0], base[1])
+
+
+  @staticmethod
+  def layout_south_west(margins, windows, direction):
+    base = (Gdk.Screen.width() - margins[1], Gdk.Screen.height() - margins[2])
+
+    for win in windows.itervalues():
+      win.move(base[0] - win.get_size()[0], base[1] - win.get_size()[1])
+      if direction == LayoutDirection.VERTICAL:
+        base = (base[0]                    , base[1] - win.get_size()[1])
+      else:
+        base = (base[0] - win.get_size()[0], base[1])
+
+
+  @staticmethod
+  def layout_south_east(margins, windows, direction):
+    base = (margins[3], Gdk.Screen.height() - margins[2])
+
+    for win in windows.itervalues():
+      win.move(base[0]                    , base[1] - win.get_size()[1])
+      if direction == LayoutDirection.VERTICAL:
+        base = (base[0]                    , base[1] - win.get_size()[1])
+      else:
+        base = (base[0] + win.get_size()[0], base[1])
+
+
+  @staticmethod
+  def layout_north_east(margins, windows, direction):
+    base = (margins[3], margins[0])
+
+    for win in windows.itervalues():
+      win.move(base[0], base[1])
+      if direction == LayoutDirection.VERTICAL:
+        base = (base[0]                    , base[1] + win.get_size()[1])
+      else:
+        base = (base[0] + win.get_size()[0], base[1])
+
+
 class NotificationDaemon(dbus.service.Object):
   """
   Implements the gnome Desktop Notification Specification [1] to display popup
@@ -38,6 +95,8 @@ class NotificationDaemon(dbus.service.Object):
     self.__windows = collections.OrderedDict()
     self.max_expire_timeout = 10000
     self.margins = [0 for x in range(4)]
+    self.layoutAnchor = LayoutAnchor.NORTH_WEST
+    self.layoutDirection = LayoutDirection.VERTICAL
 
 
   def set_max_expire_timeout(self, max_expire_timeout):
@@ -78,17 +137,52 @@ class NotificationDaemon(dbus.service.Object):
       doc = "Margins for top, right, bottom and left side of the screen.")
 
 
+  def set_layout_anchor(self, layoutAnchor):
+    try:
+      self.__layoutAnchorFunc = \
+          {
+              LayoutAnchor.NORTH_WEST : Layout.layout_north_west,
+              LayoutAnchor.SOUTH_WEST : Layout.layout_south_west,
+              LayoutAnchor.SOUTH_EAST : Layout.layout_south_east,
+              LayoutAnchor.NORTH_EAST : Layout.layout_north_east,
+          }[layoutAnchor]
+    except KeyError:
+      print("Ignoring invalid layoutAnchor setting.")
+      return
+
+    self.__layoutAnchor = layoutAnchor
+
+
+  def layout_anchor(self):
+    return self.__layoutAnchor
+
+
+  layoutAnchor = property(layout_anchor, set_layout_anchor,
+      doc = "Layout origin for the notification windows.")
+
+
+  def set_layout_direction(self, layoutDirection):
+    if layoutDirection not in \
+        [LayoutDirection.VERTICAL, LayoutDirection.HORIZONTAL]:
+      print("Ignoring invalid layoutDirection setting.")
+      return
+
+    self.__layoutDirection = layoutDirection
+
+
+  def layout_direction(self):
+    return self.__layoutDirection
+
+
+  layoutDirection = property(layout_direction, set_layout_direction,
+      doc = "Layout direction for the notification windows.")
+
+
   def __update_layout(self):
     """
     Recalculates the layout of all notification windows.
     """
-    base = (Gdk.Screen.width(), self.margins[0])
-
-    for winID in self.__windows:
-      win = self.__windows[winID]
-      winPos = (base[0] - win.get_size()[0], base[1])
-      win.move(*winPos)
-      base = map(operator.add, winPos, win.get_size())
+    self.__layoutAnchorFunc(self.margins, self.__windows, self.layoutDirection)
 
 
   def __create_win(self, summary, body):
