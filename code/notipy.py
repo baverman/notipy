@@ -3,11 +3,6 @@
 
 # depends on pygobject (or glib2?), dbus-python, gtk2 ?
 
-# http://developer.gnome.org/notification-spec/
-
-# TODO:
-# * Replace print() statements with logging functionality
-
 import dbus.mainloop.glib
 import dbus.service
 import dbus
@@ -18,6 +13,9 @@ from gi.repository import Gtk, Gdk
 import collections
 import itertools
 import operator
+import argparse
+import logging
+import warnings
 
 # This is worth its weight in gold! Conversion from classic gtk to gobject stuff
 # http://git.gnome.org/browse/pygobject/tree/pygi-convert.sh
@@ -101,7 +99,7 @@ class NotificationDaemon(dbus.service.Object):
 
   def set_max_expire_timeout(self, max_expire_timeout):
     if max_expire_timeout < 1:
-      print("Ignoring max_expire_timeout value < 1.")
+      warnings.warn("Ignoring max_expire_timeout value < 1.")
       return
     self.__max_expire_timeout = max_expire_timeout
 
@@ -120,13 +118,13 @@ class NotificationDaemon(dbus.service.Object):
       newMargins = [int(x) for x in itertools.islice(margins, 4)]
       self.__margins = newMargins
     except ValueError:
-      print(
+      warnings.warn(
           "Ignoring margins value because not all values could be converted to"
           " integer values.")
     except TypeError:
-      print("Ignoring margins value because it is not subscriptable.")
+      warnings.warn("Ignoring margins value because it is not subscriptable.")
     except IndexError:
-      print("Ignoring margins value because it doesn't have enough values.")
+      warnings.warn("Ignoring margins value because it doesn't have enough values.")
 
 
   def margins(self):
@@ -147,7 +145,7 @@ class NotificationDaemon(dbus.service.Object):
               LayoutAnchor.NORTH_EAST : Layout.layout_north_east,
           }[layoutAnchor]
     except KeyError:
-      print("Ignoring invalid layoutAnchor setting.")
+      warnings.warn("Ignoring invalid layoutAnchor setting.")
       return
 
     self.__layoutAnchor = layoutAnchor
@@ -164,7 +162,7 @@ class NotificationDaemon(dbus.service.Object):
   def set_layout_direction(self, layoutDirection):
     if layoutDirection not in \
         [LayoutDirection.VERTICAL, LayoutDirection.HORIZONTAL]:
-      print("Ignoring invalid layoutDirection setting.")
+      warnings.warn("Ignoring invalid layoutDirection setting.")
       return
 
     self.__layoutDirection = layoutDirection
@@ -289,9 +287,9 @@ class NotificationDaemon(dbus.service.Object):
 
     @returns: unsigned int
     """
-    print("sum: {}\nbod: {}".format(summary, body))
+    logging.debug("summary: \"{}\", body: \"{}\"".format(summary, body))
     self.__lastID += 1
-    print("Notification ID: {}".format(self.__lastID))
+    logging.debug("Notification ID: {}".format(self.__lastID))
 
     # FIXME: Implement handling of replaces_id.
 
@@ -308,7 +306,7 @@ class NotificationDaemon(dbus.service.Object):
             (self.max_expire_timeout if -1 == expire_timeout else \
             min(expire_timeout, self.max_expire_timeout)) / 1000
 
-        print("Will close notification {} after {} seconds.".format(
+        logging.debug("Will close notification {} after {} seconds.".format(
           self.__lastID, timeout))
 
         gobject.timeout_add_seconds(
@@ -317,11 +315,7 @@ class NotificationDaemon(dbus.service.Object):
             self.__lastID)
 
     except Exception as e:
-      import sys
-      import traceback
-      exc_type, exc_value, exc_traceback = sys.exc_info()
-      traceback.print_tb(exc_traceback)
-      print(e.message)
+      logging.exception("Exception occured during window creation.")
 
     return self.__lastID
 
@@ -368,7 +362,8 @@ class NotificationDaemon(dbus.service.Object):
     @param id: unsigned int
     @param reason: unsigned int
     """
-    print("Successfully closed notification {}. Reason: {}".format(id, reason))
+    logging.debug("Successfully closed notification {}. Reason: {}".format(
+      id, reason))
 
 
   @dbus.service.signal(
@@ -382,7 +377,28 @@ class NotificationDaemon(dbus.service.Object):
     pass
 
 
+def create_argument_parser():
+  parser = argparse.ArgumentParser(
+      description = "A notification server implementing the specification from "
+                    "http://developer.gnome.org/notification-spec/.")
+
+  parser.add_argument(
+      "-l", "--loglevel",
+      dest = "loglevel",
+      default = "WARNING",
+      type = lambda value: value.upper(),
+      choices = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+      help = "set the logging level (default: \"WARNING\")")
+
+  return parser
+
+
 def main():
+  parser = create_argument_parser()
+  args = parser.parse_args()
+
+  logging.basicConfig(level = getattr(logging, args.loglevel))
+
   dbus.mainloop.glib.DBusGMainLoop(set_as_default = True)
 
   loop = gobject.MainLoop()
@@ -393,7 +409,7 @@ def main():
   try:
     loop.run()
   except KeyboardInterrupt:
-    print("Exiting.")
+    logging.info("Exiting.")
 
 
 if __name__ == '__main__':
