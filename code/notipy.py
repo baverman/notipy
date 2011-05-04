@@ -388,13 +388,45 @@ def create_argument_parser():
       default = "WARNING",
       type = lambda value: value.upper(),
       choices = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-      help = "set the logging level (default: \"WARNING\")")
+      help = "set the logging level")
+
+  parser.add_argument(
+      "-t", "--expire-timeout",
+      dest = "expireTimeout",
+      default = 10000,
+      type = int,
+      help = "set the maximum/default timeout for notifications in [ms]")
+
+  parser.add_argument(
+      "-m", "--margins",
+      dest = "margins",
+      default = "0,0,0,0",
+      type = lambda value: [int(x) for x in value.split(",")],
+      help = "set screen margins for top, right, bottom and left side of the "
+             "screen in pixels")
+
+  parser.add_argument(
+      "-a", "--layout-anchor",
+      dest = "layoutAnchor",
+      default = "NORTH_WEST",
+      type = lambda value: getattr(LayoutAnchor, value),
+      choices = ["NORTH_WEST", "SOUTH_WEST", "SOUTH_EAST", "NORTH_EAST"],
+      help = "set the origin for the notifications")
+
+  parser.add_argument(
+      "-d", "--layout-direction",
+      dest = "layoutDirection",
+      default = "VERTICAL",
+      type = lambda value: getattr(LayoutDirection, value),
+      choices = ["VERTICAL", "HORIZONTAL"],
+      help = "set the direction for the notifications")
 
   return parser
 
 
 def main():
   parser = create_argument_parser()
+  parser.formatter_class = argparse.ArgumentDefaultsHelpFormatter
   args = parser.parse_args()
 
   logging.basicConfig(level = getattr(logging, args.loglevel))
@@ -404,7 +436,10 @@ def main():
   loop = gobject.MainLoop()
 
   notDaemon = NotificationDaemon("/org/freedesktop/Notifications")
-  notDaemon.margins = (16, 0, 0, 0)
+  notDaemon.max_expire_timeout = args.expireTimeout
+  notDaemon.margins            = args.margins
+  notDaemon.layoutAnchor       = args.layoutAnchor
+  notDaemon.layoutDirection    = args.layoutDirection
 
   try:
     loop.run()
