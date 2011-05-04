@@ -193,14 +193,14 @@ class NotificationDaemon(dbus.service.Object):
     frame.add(vBox)
 
     summaryLabel = Gtk.Label(label = summary)
-    vBox.pack_start_defaults(summaryLabel)
+    vBox.pack_start(summaryLabel, False, False, 0)
 
     separator = Gtk.HSeparator()
-    vBox.pack_start_defaults(separator)
+    vBox.pack_start(separator, False, False, 0)
 
     bodyLabel = Gtk.Label()
     bodyLabel.set_markup(str(body))
-    vBox.pack_start_defaults(bodyLabel)
+    vBox.pack_start(bodyLabel, False, False, 0)
 
     # The window's size has default values before showing it.
     win.show_all()
@@ -234,7 +234,7 @@ class NotificationDaemon(dbus.service.Object):
     """
     if id in self.__windows:
       win = self.__windows.pop(id)
-      win.hide_all()
+      win.hide()
       win.destroy()
       self.__update_layout()
       self.NotificationClosed(id, reason)
@@ -295,8 +295,7 @@ class NotificationDaemon(dbus.service.Object):
 
     try:
       win = self.__create_win(summary, body)
-      win.window.set_events(
-          win.window.get_events() | Gdk.EventMask.BUTTON_PRESS_MASK)
+      win.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
       win.connect("button-press-event", self.__window_clicked, self.__lastID)
       self.__windows[self.__lastID] = win
       self.__update_layout()
