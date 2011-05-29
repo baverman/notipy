@@ -95,6 +95,7 @@ class NotificationDaemon(dbus.service.Object):
 
     self.__lastID = 0
     self.__windows = collections.OrderedDict()
+    self.__closeEvents = {}
     self.max_expire_timeout = 10000
     self.margins = [0 for x in range(4)]
     self.layoutAnchor = LayoutAnchor.NORTH_WEST
@@ -283,6 +284,42 @@ class NotificationDaemon(dbus.service.Object):
     self.__close_notification(id, 2)
 
 
+  def __remove_close_event(self, id):
+    """
+    Removes the close event belonging to the notification with ID id.
+
+    @param id: the ID of the notification whose close event is to be removed.
+    @return: True if a close event was removed, False otherwise.
+    """
+    if id not in self.__closeEvents:
+      return False
+
+    closeEvent = self.__closeEvents.pop(id)
+    gobject.source_remove(closeEvent)
+    return True
+
+
+  def __remove_window(self, id, removeFromDict = True):
+    """
+    Removes the window belonging to the notification with ID id.
+
+    @param id: the ID of the notification whose window is to be removed.
+    @param removeFromDict: if True, id will be erased from self.__windows.
+    @return: True if a window was removed, False otherwise.
+    """
+    if id not in self.__windows:
+      return False
+
+    win = self.__windows[id]
+    win.hide()
+    win.destroy()
+
+    if removeFromDict:
+      del self.__windows[id]
+
+    return True
+
+
   def __close_notification(self, id, reason):
     """
     Closes a notification and emits NotificationClosed if the notification
@@ -292,17 +329,14 @@ class NotificationDaemon(dbus.service.Object):
     @param reason: the reason for closing the notification.
     @returns: True if a notification with this id existed, False otherwise.
     """
-    if id in self.__windows:
-      win = self.__windows.pop(id)
-      win.hide()
-      win.destroy()
+    self.__remove_close_event(id)
+
+    if self.__remove_window(id):
       self.__update_layout()
       self.NotificationClosed(id, reason)
       return True
     else:
-      # Silently ignore. This will (correctly) happen every time the user clicks
-      # a non-0 timeout notification to get rid of it, as the respective timeout
-      # will still trigger.
+      warnings.warn("Attempt to close non-existent notification {}".format(id))
       return False
 
 
@@ -347,11 +381,23 @@ class NotificationDaemon(dbus.service.Object):
 
     @returns: unsigned int
     """
-    logging.debug("summary: \"{}\", body: \"{}\"".format(summary, body))
-    self.__lastID += 1
-    logging.debug("Notification ID: {}".format(self.__lastID))
+    notificationID = 0
 
-    # FIXME: Implement handling of replaces_id.
+    if 0 != replaces_id:
+      # We can't use __close_notification here because
+      # a) the NotificationClosed signal must not be emitted
+      # b) we must not remove replaces_id from __windows or the order of the
+      #    values in the dict would be changed
+      # c) that would cause __update_layout to be called twice
+      self.__remove_close_event(replaces_id)
+      self.__remove_window(replaces_id, False)
+      notificationID = replaces_id
+    else:
+      self.__lastID += 1
+      notificationID = self.__lastID
+
+    logging.debug("summary: \"{}\", body: \"{}\"".format(summary, body))
+    logging.debug("Notification ID: {}".format(notificationID))
 
     try:
       # Priorities for icon sources:
@@ -375,27 +421,28 @@ class NotificationDaemon(dbus.service.Object):
 
       win = self.__create_win(summary, body, image)
       win.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
-      win.connect("button-press-event", self.__window_clicked, self.__lastID)
-      self.__windows[self.__lastID] = win
+      win.connect("button-press-event", self.__window_clicked, notificationID)
+      self.__windows[notificationID] = win
       self.__update_layout()
 
       if 0 != expire_timeout:
         timeout = \
-            (self.max_expire_timeout if -1 == expire_timeout else \
+            (self.max_expire_timeout if expire_timeout < 0 else \
             min(expire_timeout, self.max_expire_timeout)) / 1000
 
         logging.debug("Will close notification {} after {} seconds.".format(
-          self.__lastID, timeout))
+          notificationID, timeout))
 
-        gobject.timeout_add_seconds(
-            timeout,
-            self.__notification_expired,
-            self.__lastID)
+        self.__closeEvents[notificationID] = \
+            gobject.timeout_add_seconds(
+                timeout,
+                self.__notification_expired,
+                notificationID)
 
     except Exception as e:
       logging.exception("Exception occured during window creation.")
 
-    return self.__lastID
+    return notificationID
 
 
   @dbus.service.method(
