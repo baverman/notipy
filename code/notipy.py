@@ -8,7 +8,9 @@ import dbus.service
 import dbus
 import gobject
 
-from gi.repository import Gtk, Gdk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk, Gdk, GdkPixbuf
 
 import collections
 import itertools
@@ -16,6 +18,8 @@ import operator
 import argparse
 import logging
 import warnings
+import urllib
+import os.path
 
 # This is worth its weight in gold! Conversion from classic gtk to gobject stuff
 # http://git.gnome.org/browse/pygobject/tree/pygi-convert.sh
@@ -183,14 +187,67 @@ class NotificationDaemon(dbus.service.Object):
     self.__layoutAnchorFunc(self.margins, self.__windows, self.layoutDirection)
 
 
-  def __create_win(self, summary, body):
+  def __create_win(self, summary, body, icon = None):
     win = Gtk.Window(type = Gtk.WindowType.POPUP)
 
     frame = Gtk.Frame()
     win.add(frame)
 
+    hBox = Gtk.HBox()
+    frame.add(hBox)
+
+    logging.debug("type of icon: {}".format(str(type(icon))))
+
+    iconWidget = None
+
+    if not icon is None:
+      if isinstance(icon, unicode):
+        icon_path = urllib.url2pathname(icon)
+        if os.path.isfile(icon_path):
+          iconWidget = Gtk.Image()
+          iconWidget.set_from_file(icon_path)
+        else:
+          # Note:
+          # See output of following script for available names:
+          # from gi.repository import Gtk
+          # print("\n".join(Gtk.IconTheme.get_default().list_icons(None)))
+          theme = Gtk.IconTheme.get_default()
+          if theme.has_icon(icon):
+            iconWidget = Gtk.Image()
+            iconWidget.set_from_icon_name(icon, Gtk.IconSize.DND)
+          else:
+            warnings.warn("\"{}\" seems to be neither a valid icon file nor "
+            "a name in a freedesktop.org-compliant icon theme (or your theme "
+            "doesn't have that name). Ignoring.".format(icon))
+
+      else:
+        # For image-data and icon_data, image should look like this:
+        #
+        # dbus.Struct(
+        #   (dbus.Int32,                   # width
+        #    dbus.Int32,                   # height
+        #    dbus.Int32,                   # rowstride
+        #    dbus.Boolean,                 # has alpha
+        #    dbus.Int32,                   # bits per sample
+        #    dbus.Int32,                   # channels
+        #    dbus.Array([dbus.Byte, ...])) # image data
+        # )
+
+        # data, colorspace, has_alpha, bits_per_sample, width, height,
+        # rowstride, destroy_fn, destroy_fn_data
+        # FIXME: Do I need to free the image via a function callback?
+        pixbuf = GdkPixbuf.Pixbuf.new_from_data(
+            bytearray(icon[7]), GdkPixbuf.Colorspace.RGB, icon[3], icon[4],
+            icon[0], icon[1], icon[2], lambda x, y: None, None)
+
+        iconWidget = Gtk.Image()
+        iconWidget.set_from_pixbuf(pixbuf)
+
+    if not iconWidget is None:
+      hBox.pack_start(iconWidget, False, False, 0)
+
     vBox = Gtk.VBox()
-    frame.add(vBox)
+    hBox.pack_start(vBox, False, False, 0)
 
     summaryLabel = Gtk.Label(label = summary)
     vBox.pack_start(summaryLabel, False, False, 0)
@@ -199,6 +256,9 @@ class NotificationDaemon(dbus.service.Object):
     vBox.pack_start(separator, False, False, 0)
 
     bodyLabel = Gtk.Label()
+    # FIXME: Better check for valid markup via Pango.parse_markup first.
+    #        Unfortunately, that function currently isn't available through the
+    #        bindings in Arch :/
     bodyLabel.set_markup(str(body))
     vBox.pack_start(bodyLabel, False, False, 0)
 
@@ -265,7 +325,7 @@ class NotificationDaemon(dbus.service.Object):
 
     @returns: An array of strings
     """
-    return ["body", "body-markup", "persistence"]
+    return ["body", "body-markup", "persistence", "icon-static"]
 
 
   @dbus.service.method(
@@ -294,7 +354,26 @@ class NotificationDaemon(dbus.service.Object):
     # FIXME: Implement handling of replaces_id.
 
     try:
-      win = self.__create_win(summary, body)
+      # Priorities for icon sources:
+      #
+      # 1. image-data: hint. raw image data structure of signature (iiibiiay)
+      # 2. image-path: hint. either an URI (file://...) or a name in a
+      #                freedesktop.org-compliant icon theme
+      # 3. app_icon:   parameter. same as image-path
+      # 4. icon_data:  hint. same as image-data
+
+      image = None
+
+      if "image-data" in hints:
+        image = hints["image-data"]
+      elif "image-path" in hints:
+        image = hints["image-path"]
+      elif app_icon != "":
+        image = app_icon
+      elif "icon_data" in hints:
+        image = hints["icon_data"]
+
+      win = self.__create_win(summary, body, image)
       win.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
       win.connect("button-press-event", self.__window_clicked, self.__lastID)
       self.__windows[self.__lastID] = win
