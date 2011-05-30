@@ -7,10 +7,11 @@ import dbus.mainloop.glib
 import dbus.service
 import dbus
 import gobject
+import glib
 
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk, GdkPixbuf
+from gi.repository import Gtk, Gdk, GdkPixbuf, Pango
 
 import collections
 import itertools
@@ -257,10 +258,15 @@ class NotificationDaemon(dbus.service.Object):
     vBox.pack_start(separator, False, False, 0)
 
     bodyLabel = Gtk.Label()
-    # FIXME: Better check for valid markup via Pango.parse_markup first.
-    #        Unfortunately, that function currently isn't available through the
-    #        bindings in Arch :/
-    bodyLabel.set_markup(str(body))
+    try:
+      # Parameters: markup_text, length, accel_marker
+      # Return: (success, attr_list, text, accel_char)
+      parse_result = Pango.parse_markup(str(body), -1, u"\x00")
+      bodyLabel.set_text(parse_result[2])
+      bodyLabel.set_attributes(parse_result[1])
+    except glib.GError:
+      logging.exception("Invalid pango markup. Fix your application.")
+      bodyLabel.set_text(str(body))
     vBox.pack_start(bodyLabel, False, False, 0)
 
     # The window's size has default values before showing it.
