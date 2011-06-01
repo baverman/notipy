@@ -48,7 +48,7 @@ optional arguments:
   -m MARGINS, --margins MARGINS
                         set screen margins for top, right, bottom and left side of the screen in pixels (default: 0,0,0,0)
   -a {NORTH_WEST,SOUTH_WEST,SOUTH_EAST,NORTH_EAST}, --layout-anchor {NORTH_WEST,SOUTH_WEST,SOUTH_EAST,NORTH_EAST}
-                        set the origin for the notifications (default: NORTH_WEST)
+                        set the origin for the notifications (default: NORTH_EAST)
   -d {VERTICAL,HORIZONTAL}, --layout-direction {VERTICAL,HORIZONTAL}
                         set the direction for the notifications (default: VERTICAL)
 ----

@@ -36,30 +36,18 @@ class LayoutDirection:
 class Layout:
   @staticmethod
   def layout_north_west(margins, windows, direction):
-    base = (Gdk.Screen.width() - margins[1], margins[0])
+    base = (margins[3], margins[0])
 
     for win in windows.itervalues():
-      win.move(base[0] - win.get_size()[0], base[1])
+      win.move(base[0], base[1])
       if direction == LayoutDirection.VERTICAL:
         base = (base[0]                    , base[1] + win.get_size()[1])
       else:
-        base = (base[0] - win.get_size()[0], base[1])
+        base = (base[0] + win.get_size()[0], base[1])
 
 
   @staticmethod
   def layout_south_west(margins, windows, direction):
-    base = (Gdk.Screen.width() - margins[1], Gdk.Screen.height() - margins[2])
-
-    for win in windows.itervalues():
-      win.move(base[0] - win.get_size()[0], base[1] - win.get_size()[1])
-      if direction == LayoutDirection.VERTICAL:
-        base = (base[0]                    , base[1] - win.get_size()[1])
-      else:
-        base = (base[0] - win.get_size()[0], base[1])
-
-
-  @staticmethod
-  def layout_south_east(margins, windows, direction):
     base = (margins[3], Gdk.Screen.height() - margins[2])
 
     for win in windows.itervalues():
@@ -71,15 +59,27 @@ class Layout:
 
 
   @staticmethod
-  def layout_north_east(margins, windows, direction):
-    base = (margins[3], margins[0])
+  def layout_south_east(margins, windows, direction):
+    base = (Gdk.Screen.width() - margins[1], Gdk.Screen.height() - margins[2])
 
     for win in windows.itervalues():
-      win.move(base[0], base[1])
+      win.move(base[0] - win.get_size()[0], base[1] - win.get_size()[1])
+      if direction == LayoutDirection.VERTICAL:
+        base = (base[0]                    , base[1] - win.get_size()[1])
+      else:
+        base = (base[0] - win.get_size()[0], base[1])
+
+
+  @staticmethod
+  def layout_north_east(margins, windows, direction):
+    base = (Gdk.Screen.width() - margins[1], margins[0])
+
+    for win in windows.itervalues():
+      win.move(base[0] - win.get_size()[0], base[1])
       if direction == LayoutDirection.VERTICAL:
         base = (base[0]                    , base[1] + win.get_size()[1])
       else:
-        base = (base[0] + win.get_size()[0], base[1])
+        base = (base[0] - win.get_size()[0], base[1])
 
 
 class NotificationDaemon(dbus.service.Object):
@@ -539,7 +539,7 @@ def create_argument_parser():
   parser.add_argument(
       "-a", "--layout-anchor",
       dest = "layoutAnchor",
-      default = "NORTH_WEST",
+      default = "NORTH_EAST",
       type = lambda value: value.upper(),
       choices = ["NORTH_WEST", "SOUTH_WEST", "SOUTH_EAST", "NORTH_EAST"],
       help = "set the origin for the notifications")
