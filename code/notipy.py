@@ -540,7 +540,7 @@ def create_argument_parser():
       "-a", "--layout-anchor",
       dest = "layoutAnchor",
       default = "NORTH_WEST",
-      type = lambda value: getattr(LayoutAnchor, value),
+      type = lambda value: value.upper(),
       choices = ["NORTH_WEST", "SOUTH_WEST", "SOUTH_EAST", "NORTH_EAST"],
       help = "set the origin for the notifications")
 
@@ -548,7 +548,7 @@ def create_argument_parser():
       "-d", "--layout-direction",
       dest = "layoutDirection",
       default = "VERTICAL",
-      type = lambda value: getattr(LayoutDirection, value),
+      type = lambda value: value.upper(),
       choices = ["VERTICAL", "HORIZONTAL"],
       help = "set the direction for the notifications")
 
@@ -569,8 +569,8 @@ def main():
   notDaemon = NotificationDaemon("/org/freedesktop/Notifications")
   notDaemon.max_expire_timeout = args.expireTimeout
   notDaemon.margins            = args.margins
-  notDaemon.layoutAnchor       = args.layoutAnchor
-  notDaemon.layoutDirection    = args.layoutDirection
+  notDaemon.layoutAnchor       = getattr(LayoutAnchor, args.layoutAnchor)
+  notDaemon.layoutDirection    = getattr(LayoutDirection, args.layoutDirection)
 
   try:
     loop.run()
