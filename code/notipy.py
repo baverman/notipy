@@ -204,7 +204,7 @@ class NotificationDaemon(dbus.service.Object):
 
     if not icon is None:
       if isinstance(icon, unicode):
-        icon_path = urllib.url2pathname(icon)
+        icon_path = os.path.expanduser(urllib.url2pathname(icon))
         if os.path.isfile(icon_path):
           iconWidget = Gtk.Image()
           iconWidget.set_from_file(icon_path)
