@@ -239,7 +239,7 @@ class NotificationDaemon(dbus.service.Object):
         # rowstride, destroy_fn, destroy_fn_data
         # FIXME: Do I need to free the image via a function callback?
         pixbuf = GdkPixbuf.Pixbuf.new_from_data(
-            bytearray(icon[7]), GdkPixbuf.Colorspace.RGB, icon[3], icon[4],
+            bytearray(icon[6]), GdkPixbuf.Colorspace.RGB, icon[3], icon[4],
             icon[0], icon[1], icon[2], lambda x, y: None, None)
 
         iconWidget = Gtk.Image()
