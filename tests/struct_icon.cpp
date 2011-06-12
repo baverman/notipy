@@ -15,6 +15,19 @@ namespace po = boost::program_options;
 #include <iostream>
 #include <string>
 
+namespace
+{
+  void
+  printHelp (const char* const progName, const po::options_description& desc)
+  {
+    std::cout
+      << progName << " [options] <icon_file> <summary> <body>" << std::endl
+      << std::endl
+      << desc << std::endl;
+  }
+}
+
+
 int
 main (int argc, char** const argv)
 {
@@ -42,13 +55,13 @@ main (int argc, char** const argv)
 
   if (vm.count("help"))
   {
-    std::cout << desc << "\n";
+    ::printHelp(argv[0], desc);
     return 0;
   }
 
   if (0 == vm.count("icon") || 0 == vm.count("summary") || 0 == vm.count("body"))
   {
-    std::cout << desc << "\n";
+    ::printHelp(argv[0], desc);
     return -1;
   }
 
