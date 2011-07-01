@@ -261,12 +261,12 @@ class NotificationDaemon(dbus.service.Object):
     try:
       # Parameters: markup_text, length, accel_marker
       # Return: (success, attr_list, text, accel_char)
-      parse_result = Pango.parse_markup(str(body), -1, u"\x00")
+      parse_result = Pango.parse_markup(body, -1, u"\x00")
       bodyLabel.set_text(parse_result[2])
       bodyLabel.set_attributes(parse_result[1])
     except glib.GError:
       logging.exception("Invalid pango markup. Fix your application.")
-      bodyLabel.set_text(str(body))
+      bodyLabel.set_text(body)
     vBox.pack_start(bodyLabel, False, False, 0)
 
     # The window's size has default values before showing it.
@@ -402,7 +402,9 @@ class NotificationDaemon(dbus.service.Object):
       self.__lastID += 1
       notificationID = self.__lastID
 
-    logging.debug("summary: \"{}\", body: \"{}\"".format(summary, body))
+    logging.debug("summary: \"{}\", body: \"{}\"".format(
+        unicode(summary).encode("ascii", errors="backslashreplace"),
+        unicode(body).encode("ascii", errors="backslashreplace")))
     logging.debug("Notification ID: {}".format(notificationID))
 
     try:
