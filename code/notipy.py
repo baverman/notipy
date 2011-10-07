@@ -1,17 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# depends on pygobject (or glib2?), dbus-python, gtk2 ?
-
 import dbus.mainloop.glib
 import dbus.service
 import dbus
-import gobject
-import glib
 
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk, GdkPixbuf, Pango
+from gi.repository import GLib, Gtk, Gdk, GdkPixbuf, Pango
 
 import collections
 import itertools
@@ -257,7 +253,7 @@ class NotificationDaemon(dbus.service.Object):
             parse_result = Pango.parse_markup(body, -1, u"\x00")
             bodyLabel.set_text(parse_result[2])
             bodyLabel.set_attributes(parse_result[1])
-        except glib.GError:
+        except GLib.GError:
             logging.exception("Invalid pango markup. Fix your application.")
             bodyLabel.set_text(body)
         vBox.pack_start(bodyLabel, False, False, 0)
@@ -292,7 +288,7 @@ class NotificationDaemon(dbus.service.Object):
             return False
 
         closeEvent = self.__closeEvents.pop(id)
-        gobject.source_remove(closeEvent)
+        GLib.source_remove(closeEvent)
         return True
 
     def __remove_window(self, id, removeFromDict=True):
@@ -425,7 +421,7 @@ class NotificationDaemon(dbus.service.Object):
                     .format(notificationID, timeout))
 
                 self.__closeEvents[notificationID] = \
-                    gobject.timeout_add_seconds(
+                    GLib.timeout_add_seconds(
                         timeout,
                         self.__notification_expired,
                         notificationID)
@@ -546,7 +542,7 @@ def main():
 
     dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 
-    loop = gobject.MainLoop()
+    loop = GLib.MainLoop()
 
     notDaemon = NotificationDaemon("/org/freedesktop/Notifications")
     notDaemon.max_expire_timeout = args.expireTimeout
