@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 import dbus.mainloop.glib
@@ -17,6 +17,7 @@ import logging
 import warnings
 import urllib
 import os.path
+import subprocess
 
 
 # This is worth its weight in gold! Conversion from classic gtk to gobject
@@ -411,6 +412,7 @@ class NotificationDaemon(dbus.service.Object):
                 "button-press-event", self.__window_clicked, notificationID)
             self.__windows[notificationID] = win
             self.__update_layout()
+            subprocess.Popen(['canberra-gtk-play', '--id=message-new-instant'])
 
             if 0 != expire_timeout:
                 timeout = \

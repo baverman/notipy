@@ -8,7 +8,7 @@ notipy is an implementation of the http://developer.gnome.org/notification-spec/
 message popups using gtk3, allowing for pango marked up message bodies and icons
 that can be specified in various ways.
 
-image:https://github.com/the-isz/notipy/raw/master/doc/screen.png[notipy in action]
+image:https://github.com/mrk3004/notipy/raw/master/doc/screen.png[notipy in action]
 
 The design goals of notipy include a minimalistic implementation (following the
 unix philosophy "do one thing and do it well") and having as little as possible
