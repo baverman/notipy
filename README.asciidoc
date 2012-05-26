@@ -21,6 +21,7 @@ notipy requires the following libraries to work:
 * `gtk3`
 * `pygobject`
 * `dbus-python`
+* `libcanberra`
 
 Installation is simply done via:
 
@@ -53,11 +54,8 @@ optional arguments:
                         set the direction for the notifications (default: VERTICAL)
 ----
 
-Configuration via a rc-file is planned for a future release.
 
-== How to contribute
+== Roadmap
 
-If you find any bugs, have feature requests or want to contribute code, please
-use the notipy https://github.com/the-isz/notipy[github page].
-
-// vim: set tw=80 ft=asciidoc:
+* Configuration via a rc-file
+* Python3 support
