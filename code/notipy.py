@@ -8,6 +8,7 @@ import dbus
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import GLib, Gtk, Gdk, GdkPixbuf, Pango
+import cairo
 
 import collections
 import itertools
@@ -177,8 +178,15 @@ class NotificationDaemon(dbus.service.Object):
 
     def __create_win(self, summary, body, icon=None):
         win = Gtk.Window(type=Gtk.WindowType.POPUP)
+        win.set_decorated(False)
+        win.set_app_paintable(True)
+        screen = win.get_screen()
+        rgba = screen.get_rgba_visual()
+        if rgba != None and screen.is_composited():
+            win.set_visual(rgba)
 
         frame = Gtk.Frame()
+        frame.set_border_width(5);
         win.add(frame)
 
         hBox = Gtk.HBox()
@@ -239,20 +247,21 @@ class NotificationDaemon(dbus.service.Object):
             hBox.pack_start(iconWidget, False, False, 0)
 
         vBox = Gtk.VBox()
-        hBox.pack_start(vBox, False, False, 0)
+        hBox.pack_start(vBox, False, False, 20)
 
-        summaryLabel = Gtk.Label(label=summary)
+        summaryLabel = Gtk.Label()
+        summaryLabel.set_markup("<span color='white'>" + summary + "</span>")
         vBox.pack_start(summaryLabel, False, False, 0)
 
-        separator = Gtk.HSeparator()
-        vBox.pack_start(separator, False, False, 0)
+        #separator = Gtk.HSeparator()
+        #vBox.pack_start(separator, False, False, 0)
 
         bodyLabel = Gtk.Label()
         try:
             # Parameters: markup_text, length, accel_marker
             # Return: (success, attr_list, text, accel_char)
             parse_result = Pango.parse_markup(body, -1, u"\x00")
-            bodyLabel.set_text(parse_result[2])
+            bodyLabel.set_markup("<span color='white'>" + parse_result[2] + "</span>")
             bodyLabel.set_attributes(parse_result[1])
         except GLib.GError:
             logging.exception("Invalid pango markup. Fix your application.")
@@ -260,9 +269,16 @@ class NotificationDaemon(dbus.service.Object):
         vBox.pack_start(bodyLabel, False, False, 0)
 
         # The window's size has default values before showing it.
+        win.connect("draw", self.area_draw)
         win.show_all()
 
         return win
+        
+    def area_draw(self, widget, cr):
+        cr.set_source_rgba(.5, 0, .3, .6)
+        cr.set_operator(cairo.OPERATOR_SOURCE)
+        cr.paint()
+        cr.set_operator(cairo.OPERATOR_OVER)
 
     def __notification_expired(self, id):
         """
