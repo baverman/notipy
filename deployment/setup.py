@@ -4,11 +4,11 @@
 import distutils.core
 
 distutils.core.setup(
-    name="notipy",
-    version="0.2.1",
+    name="notipy-fork",
+    version="0.3.0",
     description="A minimalistic gtk3 notification daemon written in python.",
-    author="Timo Schmiade",
-    author_email="the_isz@gmx.de",
-    url="https://github.com/the-isz/notipy",
+    author="Vinycius Maia",
+    author_email="suportevg@uol.com.br",
+    url="https://github.com/mrk3004/notipy/",
     scripts=["code/notipy.py"]
     )
