@@ -10,5 +10,5 @@ distutils.core.setup(
     author="Vinycius Maia",
     author_email="suportevg@uol.com.br",
     url="https://github.com/mrk3004/notipy/",
-    scripts=["code/notipy.py"]
+    scripts=["notipy"]
     )
