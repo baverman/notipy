@@ -148,6 +148,16 @@ class NotificationDaemon(dbus.service.Object):
             return
 
         self.__layoutAnchor = layoutAnchor
+        
+    def wrap(self, text, width):
+        return reduce(lambda line, word, width=width: '%s%s%s' %
+            (line,
+               ' \n'[(len(line)-line.rfind('\n')-1
+                     + len(word.split('\n',1)[0]
+                           ) >= width)],
+               word),
+              text.split(' ')
+             )
 
     def layout_anchor(self):
         return self.__layoutAnchor
@@ -422,7 +432,7 @@ class NotificationDaemon(dbus.service.Object):
             elif "icon_data" in hints:
                 image = hints["icon_data"]
 
-            win = self.__create_win(summary, body, image)
+            win = self.__create_win(summary, self.wrap(body,40), image)
             win.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
             win.connect(
                 "button-press-event", self.__window_clicked, notificationID)
