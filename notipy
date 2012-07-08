@@ -20,6 +20,12 @@ import urllib
 import os.path
 import subprocess
 
+import ConfigParser
+Config = ConfigParser.ConfigParser()
+if os.path.isfile("/etc/notipy.conf"):
+	Config.read("/etc/notipy.conf")
+else:
+	Config.read("notipy.conf")
 
 # This is worth its weight in gold! Conversion from classic gtk to gobject
 # stuff http://git.gnome.org/browse/pygobject/tree/pygi-convert.sh
@@ -99,6 +105,19 @@ class NotificationDaemon(dbus.service.Object):
         self.margins = [0 for x in range(4)]
         self.layoutAnchor = LayoutAnchor.NORTH_WEST
         self.layoutDirection = LayoutDirection.VERTICAL
+        
+    def ConfigSectionMap(self, section):
+        dict1 = {}
+        options = Config.options(section)
+        for option in options:
+	        try:
+	            dict1[option] = Config.get(section, option)
+	            if dict1[option] == -1:
+	                DebugPrint("skip: %s" % option)
+	        except:
+	            print("exception on %s!" % option)
+	            dict1[option] = None
+        return dict1
 
     def set_max_expire_timeout(self, max_expire_timeout):
         if max_expire_timeout < 1:
@@ -285,7 +304,10 @@ class NotificationDaemon(dbus.service.Object):
         return win
         
     def area_draw(self, widget, cr):
-        cr.set_source_rgba(.5, 0, .3, .6)
+        cr.set_source_rgba(Config.getfloat("Layout", "red_intensity"),
+                           Config.getfloat("Layout", "green_intensity"),
+                           Config.getfloat("Layout", "blue_intensity"),
+                           Config.getfloat("Layout", "Alpha_intensity"))
         cr.set_operator(cairo.OPERATOR_SOURCE)
         cr.paint()
         cr.set_operator(cairo.OPERATOR_OVER)
@@ -391,6 +413,7 @@ class NotificationDaemon(dbus.service.Object):
 
         @returns: unsigned int
         """
+        
         notificationID = 0
 
         if 0 != replaces_id:
@@ -438,7 +461,9 @@ class NotificationDaemon(dbus.service.Object):
                 "button-press-event", self.__window_clicked, notificationID)
             self.__windows[notificationID] = win
             self.__update_layout()
-            subprocess.Popen(['canberra-gtk-play', '--id=message-new-instant'])
+            
+            if Config.getboolean("Global", "canberra"):
+	            subprocess.Popen(['canberra-gtk-play', '--id=message-new-instant'])
 
             if 0 != expire_timeout:
                 timeout = \
@@ -522,7 +547,7 @@ def create_argument_parser():
     parser.add_argument(
         "-l", "--loglevel",
         dest="loglevel",
-        default="WARNING",
+        default=Config.get("Global", "loglevel"),
         type=lambda value: value.upper(),
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         help="set the logging level")
@@ -530,14 +555,17 @@ def create_argument_parser():
     parser.add_argument(
         "-t", "--expire-timeout",
         dest="expireTimeout",
-        default=10000,
+        default=Config.getint("Global", "timeout"),
         type=int,
         help="set the maximum/default timeout for notifications in [ms]")
 
     parser.add_argument(
         "-m", "--margins",
         dest="margins",
-        default="0,0,0,0",
+        default=(Config.get("Layout", "margin_top") + "," +
+                 Config.get("Layout", "margin_right") + "," +
+                 Config.get("Layout", "margin_bottom") + "," +
+                 Config.get("Layout", "margin_left")),
         type=lambda value: [int(x) for x in value.split(",")],
         help="set screen margins for top, right, bottom and left side of the"
                " screen in pixels")
@@ -545,7 +573,7 @@ def create_argument_parser():
     parser.add_argument(
         "-a", "--layout-anchor",
         dest="layoutAnchor",
-        default="NORTH_EAST",
+        default=Config.get("Layout", "anchor"),
         type=lambda value: value.upper(),
         choices=["NORTH_WEST", "SOUTH_WEST", "SOUTH_EAST", "NORTH_EAST"],
         help="set the origin for the notifications")
@@ -553,7 +581,7 @@ def create_argument_parser():
     parser.add_argument(
         "-d", "--layout-direction",
         dest="layoutDirection",
-        default="VERTICAL",
+        default=Config.get("Layout", "direction"),
         type=lambda value: value.upper(),
         choices=["VERTICAL", "HORIZONTAL"],
         help="set the direction for the notifications")
