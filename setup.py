@@ -5,7 +5,7 @@ from distutils.core import setup
 
 setup(
     name="notipy-fork",
-    version="0.3.0",
+    version="0.4.0",
     description="A minimalistic gtk3 notification daemon written in python.",
     author="Vinycius Maia",
     author_email="suportevg@uol.com.br",
