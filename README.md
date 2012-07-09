@@ -1,21 +1,21 @@
-= notipy
+# notipy #
 
 A minimalistic gtk3 notification daemon written in python.
 
-== Introduction
+## Introduction ##
 
-notipy is an implementation of the http://developer.gnome.org/notification-spec/[Desktop Notification Specification]. It shows
+notipy is an implementation of the [Desktop Notification Specification](http://developer.gnome.org/notification-spec/). It shows
 message popups using gtk3, allowing for pango marked up message bodies and icons
 that can be specified in various ways.
 
-image:https://github.com/mrk3004/notipy/raw/master/screen.png[notipy in action]
-image:https://github.com/mrk3004/notipy/raw/master/screen2.png[Other example]
+![notipy in action](https://github.com/mrk3004/notipy/raw/master/screen.png)
+![Other example](https://github.com/mrk3004/notipy/raw/master/screen2.png)
 
 The design goals of notipy include a minimalistic implementation (following the
 unix philosophy "do one thing and do it well") and having as little as possible
 dependencies.
 
-== Installation
+## Installation ##
 
 notipy requires the following libraries to work:
 
@@ -26,11 +26,9 @@ notipy requires the following libraries to work:
 
 Installation is simply done via:
 
-----
-./setup.py install [--root=<root dir> --prefix=<prefix dir>]
-----
+	./setup.py install [--root=<root dir> --prefix=<prefix dir>]
 
-== Configuration
+## Configuration ##
 
 Until now, notipy is configured via command-line arguments or via configuration file (notipy.conf). 
 
@@ -38,7 +36,6 @@ For configuration via command-line options, read notipy --help
 
 For configuration via file, read info in /etc/notipy.conf
 
-== Roadmap
+## Roadmap ##
 
-* [line-through]*Configuration via a rc-file*
 * Python3 support
