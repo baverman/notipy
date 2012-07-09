@@ -9,6 +9,7 @@ message popups using gtk3, allowing for pango marked up message bodies and icons
 that can be specified in various ways.
 
 image:https://github.com/mrk3004/notipy/raw/master/screen.png[notipy in action]
+image:https://github.com/mrk3004/notipy/raw/master/screen2.png[Other example]
 
 The design goals of notipy include a minimalistic implementation (following the
 unix philosophy "do one thing and do it well") and having as little as possible
@@ -26,36 +27,18 @@ notipy requires the following libraries to work:
 Installation is simply done via:
 
 ----
-./deployment/setup.py install
+./setup.py install [--root=<root dir> --prefix=<prefix dir>]
 ----
 
 == Configuration
 
-Until now, notipy is configured exclusively via command-line arguments. These
-can be listed via the `--help` command-line option:
+Until now, notipy is configured via command-line arguments or via configuration file (notipy.conf). 
 
-----
-usage: notipy.py [-h] [-l {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [-t EXPIRETIMEOUT] [-m MARGINS]
-                 [-a {NORTH_WEST,SOUTH_WEST,SOUTH_EAST,NORTH_EAST}] [-d {VERTICAL,HORIZONTAL}]
+For configuration via command-line options, read notipy --help
 
-A notification server implementing the specification from http://developer.gnome.org/notification-spec/.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -l {DEBUG,INFO,WARNING,ERROR,CRITICAL}, --loglevel {DEBUG,INFO,WARNING,ERROR,CRITICAL}
-                        set the logging level (default: WARNING)
-  -t EXPIRETIMEOUT, --expire-timeout EXPIRETIMEOUT
-                        set the maximum/default timeout for notifications in [ms] (default: 10000)
-  -m MARGINS, --margins MARGINS
-                        set screen margins for top, right, bottom and left side of the screen in pixels (default: 0,0,0,0)
-  -a {NORTH_WEST,SOUTH_WEST,SOUTH_EAST,NORTH_EAST}, --layout-anchor {NORTH_WEST,SOUTH_WEST,SOUTH_EAST,NORTH_EAST}
-                        set the origin for the notifications (default: NORTH_EAST)
-  -d {VERTICAL,HORIZONTAL}, --layout-direction {VERTICAL,HORIZONTAL}
-                        set the direction for the notifications (default: VERTICAL)
-----
-
+For configuration via file, read info in /etc/notipy.conf
 
 == Roadmap
 
-* Configuration via a rc-file
+* [line-through]*Configuration via a rc-file*
 * Python3 support
