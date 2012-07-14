@@ -12,5 +12,5 @@ setup(
     license="GPLv3",
     url="https://github.com/baverman/notipy/",
     scripts=["notipy"],
-    data_files=[("/usr/share/notipy", ["notipyrc"])]
+    data_files=[("notipy", ["notipyrc"])]
 )
