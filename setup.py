@@ -4,13 +4,13 @@
 from distutils.core import setup
 
 setup(
-    name="notipy-fork",
-    version="0.4.0",
+    name="notipy-fork-fork",
+    version="0.5.0",
     description="A minimalistic gtk3 notification daemon written in python.",
-    author="Vinycius Maia",
-    author_email="suportevg@uol.com.br",
+    author="Anton Bobrov",
+    author_email="bobrov@vl.ru",
     license="GPLv3",
-    url="https://github.com/mrk3004/notipy/",
+    url="https://github.com/baverman/notipy/",
     scripts=["notipy"],
-    data_files=[("/etc", ["notipy.conf"])]
-    )
+    data_files=[("/usr/share/notipy", ["notipyrc"])]
+)
