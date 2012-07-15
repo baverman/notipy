@@ -22,6 +22,7 @@ HORIZONTAL, VERTICAL = range(2)
 
 def simple_layout(windows, arrangement, x_offset, y_offset, gap):
     x, y = x_offset, y_offset
+    sw, sh = Gdk.Screen.width(), Gdk.Screen.height()
 
     if x_offset < 0:
         wb, wa, x_gap = 1, 0, -gap
@@ -35,24 +36,21 @@ def simple_layout(windows, arrangement, x_offset, y_offset, gap):
 
     for win in windows.itervalues():
         ww, wh = win.get_size()
-        if x < 0: x = Gdk.Screen.width() + x + 1
-        if y < 0: y = Gdk.Screen.height() + y + 1
+        if x < 0: x = sw + x + 1
+        if y < 0: y = sh + y + 1
 
         x -= wb * ww
         y -= hb * wh
-
-        if arrangement == HORIZONTAL:
-            hb = 0
-        else:
-            wb = 0
 
         win.move(x, y)
         win.show()
 
         if arrangement == HORIZONTAL:
             x = x + ww * wa + x_gap
+            y = y_offset
         else:
             y = y + wh * ha + y_gap
+            x = x_offset
 
 
 class NotificationDaemon(dbus.service.Object):
@@ -71,12 +69,12 @@ class NotificationDaemon(dbus.service.Object):
         self.last_id = 0
         self.windows = collections.OrderedDict()
         self.close_events = {}
-        self.max_expire_timeout = 5000
         self.x_offset = -1
         self.y_offset = -20
         self.arrangement = VERTICAL
         self.gap = 3
         self.padding = 5
+        self.timeout = 5000
 
     def wrap(self, text, width):
         return reduce(lambda line, word, width=width: '%s%s%s' %
@@ -353,10 +351,7 @@ class NotificationDaemon(dbus.service.Object):
 	            subprocess.Popen(['canberra-gtk-play', '--id=message-new-instant'])
 
             if 0 != expire_timeout:
-                timeout = \
-                    (self.max_expire_timeout if expire_timeout < 0 else \
-                    min(expire_timeout, self.max_expire_timeout)) / 1000
-
+                timeout = (self.timeout if expire_timeout < 0 else expire_timeout) / 1000
                 logging.debug("Will close notification {} after {} seconds."
                     .format(notificationID, timeout))
 
@@ -476,7 +471,7 @@ def main():
     daemon = NotificationDaemon("/org/freedesktop/Notifications")
 
     daemon.canberra = cfg.getboolean('Global', 'canberra')
-    daemon.max_expire_timeout = cfg.getint('Global', 'timeout')
+    daemon.timeout = cfg.getint('Global', 'timeout')
 
     daemon.x_offset = cfg.getint('Layout', 'x_offset')
     daemon.y_offset = cfg.getint('Layout', 'y_offset')
