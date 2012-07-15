@@ -180,9 +180,10 @@ class NotificationDaemon(dbus.service.Object):
         frame.realize()
         win.realize()
 
-        req = bodyLabel.size_request()
-        if req.width * 1.0 / req.height < 8:
-            bodyLabel.set_size_request(int(math.sqrt(8 * req.width * req.height)), -1)
+        if body:
+            req = bodyLabel.size_request()
+            if req.width * 1.0 / req.height < 8:
+                bodyLabel.set_size_request(int(math.sqrt(8 * req.width * req.height)), -1)
 
         req = win.size_request()
         win.resize(req.width, req.height)
