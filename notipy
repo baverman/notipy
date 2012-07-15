@@ -7,6 +7,7 @@ import subprocess
 import urllib
 import logging
 import warnings
+import math
 import ConfigParser
 
 import dbus.mainloop.glib
@@ -75,16 +76,6 @@ class NotificationDaemon(dbus.service.Object):
         self.gap = 3
         self.padding = 5
         self.timeout = 5000
-
-    def wrap(self, text, width):
-        return reduce(lambda line, word, width=width: '%s%s%s' %
-            (line,
-               ' \n'[(len(line)-line.rfind('\n')-1
-                     + len(word.split('\n',1)[0]
-                           ) >= width)],
-               word),
-              text.split(' ')
-             )
 
     def update_layout(self):
         simple_layout(self.windows, self.arrangement, self.x_offset, self.y_offset, self.gap)
@@ -159,33 +150,42 @@ class NotificationDaemon(dbus.service.Object):
         if not iconWidget is None:
             hBox.pack_start(iconWidget, False, False, 0)
 
-        vBox = Gtk.VBox()
-        hBox.pack_start(vBox, False, False, 20)
+        vBox = Gtk.VBox(homogeneous=False)
+        hBox.pack_start(vBox, False, False, 0)
 
-        summaryLabel = Gtk.Label()
-        summaryLabel.set_markup("<span color='white'>" + summary + "</span>")
-        vBox.pack_start(summaryLabel, False, False, 0)
+        summaryLabel = Gtk.Label(xalign=0)
+        summaryLabel.set_markup('<span color="white" weight="bold">' + summary + '</span>')
+        vBox.pack_start(summaryLabel, True, True, 0)
 
-        #separator = Gtk.HSeparator()
-        #vBox.pack_start(separator, False, False, 0)
+        if body:
+            bodyLabel = Gtk.Label(xalign=0)
+            if len(body) > 30:
+                bodyLabel.props.wrap = True
 
-        bodyLabel = Gtk.Label()
-        try:
-            # Parameters: markup_text, length, accel_marker
-            # Return: (success, attr_list, text, accel_char)
-            parse_result = Pango.parse_markup(body, -1, u"\x00")
-            bodyLabel.set_markup("<span color='white'>" + parse_result[2] + "</span>")
-            bodyLabel.set_attributes(parse_result[1])
-        except GLib.GError:
-            logging.exception("Invalid pango markup. Fix your application.")
-            bodyLabel.set_text(body)
-        vBox.pack_start(bodyLabel, False, False, 0)
+            try:
+                # Parameters: markup_text, length, accel_marker
+                # Return: (success, attr_list, text, accel_char)
+                parse_result = Pango.parse_markup(body, -1, u"\x00")
+                bodyLabel.set_markup('<span color="white">' + parse_result[2] + '</span>')
+                bodyLabel.set_attributes(parse_result[1])
+            except GLib.GError:
+                logging.exception("Invalid pango markup. Fix your application.")
+                bodyLabel.set_text(body)
+            vBox.pack_start(bodyLabel, True, True, 0)
 
         # The window's size has default values before showing it.
         win.connect("draw", self.area_draw)
+        
         frame.show_all()
         frame.realize()
         win.realize()
+
+        req = bodyLabel.size_request()
+        if req.width * 1.0 / req.height < 8:
+            bodyLabel.set_size_request(int(math.sqrt(8 * req.width * req.height)), -1)
+
+        req = win.size_request()
+        win.resize(req.width, req.height)
 
         return win
 
@@ -340,7 +340,7 @@ class NotificationDaemon(dbus.service.Object):
             elif "icon_data" in hints:
                 image = hints["icon_data"]
 
-            win = self.create_window(summary, self.wrap(body,40), image)
+            win = self.create_window(summary, body, image)
             win.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
             win.connect(
                 "button-press-event", self.window_clicked, notificationID)
