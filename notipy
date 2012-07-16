@@ -338,7 +338,7 @@ class NotificationDaemon(dbus.service.Object):
             elif "icon_data" in hints:
                 image = hints["icon_data"]
 
-            urgency = hints['urgency']
+            urgency = hints.get('urgency', 1)
 
             win = self.create_window(urgency, summary, body, image)
             win.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
