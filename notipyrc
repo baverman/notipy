@@ -3,7 +3,7 @@
 #
 # canberra = 0
 
-# set the maximum/default timeout for notifications in [ms]
+# set the default timeout for notifications in [ms]
 #
 # timeout = 5000
 
@@ -33,6 +33,11 @@
 #
 # arrangement = 1
 
+
+# Following sections set options for specific urgency level
+###################
+
+[Low]
 # set the background of the notification window
 #
 # background = #222
@@ -41,3 +46,21 @@
 # 0.00 totally transparent, 1.00 totally opaque
 #
 # background_alpha = 1.0
+
+# Templates for summary and body, tag documentation can be found at
+# http://developer.gnome.org/pango/stable/PangoMarkupFormat.html
+# 
+# summary_format = <span color="white" weight="bold">{}</span>
+# body_format = <span color="white">{}</span>
+ 
+[Normal]
+# background = #222
+# background_alpha = 1.0
+# summary_format = <span color="white" weight="bold">{}</span>
+# body_format = <span color="white">{}</span>
+
+[Critical]
+# background = #420041
+# background_alpha = 1.0
+# summary_format = <span color="white" weight="bold">{}</span>
+# body_format = <span color="white">{}</span>

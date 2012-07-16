@@ -70,17 +70,13 @@ class NotificationDaemon(dbus.service.Object):
         self.last_id = 0
         self.windows = collections.OrderedDict()
         self.close_events = {}
-        self.x_offset = -1
-        self.y_offset = -20
-        self.arrangement = VERTICAL
-        self.gap = 3
-        self.padding = 5
-        self.timeout = 5000
+        self.urgency_options = {}
 
     def update_layout(self):
         simple_layout(self.windows, self.arrangement, self.x_offset, self.y_offset, self.gap)
 
-    def create_window(self, summary, body, icon=None):
+    def create_window(self, urgency, summary, body, icon=None):
+
         win = Gtk.Window(type=Gtk.WindowType.POPUP)
         win.set_decorated(False)
         win.set_app_paintable(True)
@@ -154,7 +150,7 @@ class NotificationDaemon(dbus.service.Object):
         hBox.pack_start(vBox, False, False, 0)
 
         summaryLabel = Gtk.Label(xalign=0)
-        summaryLabel.set_markup('<span color="white" weight="bold">' + summary + '</span>')
+        summaryLabel.set_markup(self.urgency_options[urgency]['summary_format'].format(summary))
         vBox.pack_start(summaryLabel, True, True, 0)
 
         if body:
@@ -166,7 +162,7 @@ class NotificationDaemon(dbus.service.Object):
                 # Parameters: markup_text, length, accel_marker
                 # Return: (success, attr_list, text, accel_char)
                 parse_result = Pango.parse_markup(body, -1, u"\x00")
-                bodyLabel.set_markup('<span color="white">' + parse_result[2] + '</span>')
+                bodyLabel.set_markup(self.urgency_options[urgency]['body_format'].format(parse_result[2]))
                 bodyLabel.set_attributes(parse_result[1])
             except GLib.GError:
                 logging.exception("Invalid pango markup. Fix your application.")
@@ -174,8 +170,9 @@ class NotificationDaemon(dbus.service.Object):
             vBox.pack_start(bodyLabel, True, True, 0)
 
         # The window's size has default values before showing it.
+        win._urgency = urgency
         win.connect("draw", self.area_draw)
-        
+
         frame.show_all()
         frame.realize()
         win.realize()
@@ -190,9 +187,10 @@ class NotificationDaemon(dbus.service.Object):
         return win
 
     def area_draw(self, widget, cr):
-        cr.set_source_rgba(self.background.red / 65535.0, self.background.green / 65535.0,
-            self.background.blue / 65535.0, self.background_alpha)
+        bg = self.urgency_options[widget._urgency]['background']
+        alpha = self.urgency_options[widget._urgency]['background_alpha']
 
+        cr.set_source_rgba(bg.red / 65535.0, bg.green / 65535.0, bg.blue / 65535.0, alpha)
         cr.set_operator(cairo.OPERATOR_SOURCE)
         cr.paint()
         cr.set_operator(cairo.OPERATOR_OVER)
@@ -340,7 +338,9 @@ class NotificationDaemon(dbus.service.Object):
             elif "icon_data" in hints:
                 image = hints["icon_data"]
 
-            win = self.create_window(summary, body, image)
+            urgency = hints['urgency']
+
+            win = self.create_window(urgency, summary, body, image)
             win.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
             win.connect(
                 "button-press-event", self.window_clicked, notificationID)
@@ -350,7 +350,7 @@ class NotificationDaemon(dbus.service.Object):
             if self.canberra:
 	            subprocess.Popen(['canberra-gtk-play', '--id=message-new-instant'])
 
-            if 0 != expire_timeout:
+            if 0 != expire_timeout and urgency != 2:
                 timeout = (self.timeout if expire_timeout < 0 else expire_timeout) / 1000
                 logging.debug("Will close notification {} after {} seconds."
                     .format(notificationID, timeout))
@@ -462,6 +462,9 @@ def main():
     })
     cfg.add_section('Global')
     cfg.add_section('Layout')
+    cfg.add_section('Low')
+    cfg.add_section('Normal')
+    cfg.add_section('Critical')
 
     cfg.read(args.config)
 
@@ -478,8 +481,23 @@ def main():
     daemon.gap = cfg.getint('Layout', 'gap')
     daemon.padding = cfg.getint('Layout', 'padding')
     daemon.arrangement = cfg.getint('Layout', 'arrangement')
-    daemon.background = Gdk.color_parse(cfg.get('Layout', 'background'))
-    daemon.background_alpha = cfg.getfloat('Layout', 'background_alpha')
+
+    default_opts = {
+        'background': '#222',
+        'background_alpha': '1.0',
+        'summary_format': '<span color="white" weight="bold">{}</span>',
+        'body_format': '<span color="white">{}</span>'
+    }
+    for urgency, section in enumerate(('Low', 'Normal', 'Critical')):
+        opts = daemon.urgency_options[urgency] = {}
+
+        if urgency == 2:
+            default_opts['background'] = '#420041'
+
+        opts['background'] = Gdk.color_parse(cfg.get(section, 'background', vars=default_opts))
+        opts['background_alpha'] = float(cfg.get(section, 'background_alpha', vars=default_opts))
+        opts['summary_format'] = cfg.get(section, 'summary_format', vars=default_opts)
+        opts['body_format'] = cfg.get(section, 'body_format', vars=default_opts)
 
     loop = GLib.MainLoop()
     try:
