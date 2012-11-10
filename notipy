@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/python2
 # -*- coding: utf-8 -*-
 import os.path
 import collections
@@ -150,7 +150,7 @@ class NotificationDaemon(dbus.service.Object):
         hBox.pack_start(vBox, False, False, 0)
 
         summaryLabel = Gtk.Label(xalign=0)
-        summaryLabel.set_markup(self.urgency_options[urgency]['summary_format'].format(summary))
+        summaryLabel.set_markup(self.urgency_options[urgency]['summary_format'].decode('utf-8').format(summary))
         vBox.pack_start(summaryLabel, True, True, 0)
 
         if body:
@@ -161,8 +161,9 @@ class NotificationDaemon(dbus.service.Object):
             try:
                 # Parameters: markup_text, length, accel_marker
                 # Return: (success, attr_list, text, accel_char)
+                body = self.urgency_options[urgency]['body_format'].decode('utf-8').format(body)
                 parse_result = Pango.parse_markup(body, -1, u"\x00")
-                bodyLabel.set_markup(self.urgency_options[urgency]['body_format'].format(parse_result[2]))
+                bodyLabel.set_text(parse_result[2])
                 bodyLabel.set_attributes(parse_result[1])
             except GLib.GError:
                 logging.exception("Invalid pango markup. Fix your application.")
