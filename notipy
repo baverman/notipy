@@ -87,6 +87,7 @@ class NotificationDaemon(dbus.service.Object):
 
         frame = Gtk.Frame()
         frame.set_border_width(self.padding);
+        frame.set_shadow_type(Gtk.ShadowType.NONE)
         win.add(frame)
 
         hBox = Gtk.HBox()
@@ -456,7 +457,7 @@ def main():
         'x_offset': '-1',
         'y_offset': '22',
         'gap': '3',
-        'padding': '5',
+        'padding': '10',
         'arrangement': '1',
         'background': '#222',
         'background_alpha': '1.0',
